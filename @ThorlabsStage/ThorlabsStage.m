@@ -10,85 +10,105 @@ classdef ThorlabsStage < handle
     
     properties (Constant, Hidden)
        % path to DLL files (edit as appropriate)
-       MOTORPATHDEFAULT='C:\Program Files\Thorlabs\Kinesis\';
-
+       MOTORPATHDEFAULT(1, :) char = 'C:\Program Files\Thorlabs\Kinesis\';
        % DLL files to be loaded
-       DEVICEMANAGERDLL='Thorlabs.MotionControl.DeviceManagerCLI.dll';
-       DEVICEMANAGERCLASSNAME='Thorlabs.MotionControl.DeviceManagerCLI.DeviceManagerCLI'
-       GENERICMOTORDLL='Thorlabs.MotionControl.GenericMotorCLI.dll';
-       GENERICMOTORCLASSNAME='Thorlabs.MotionControl.GenericMotorCLI.GenericMotorCLI';
-     
-       BRUSHLESSMOTORDLL='Thorlabs.MotionControl.KCube.BrushlessMotorCLI.dll';  
-       BRUSHLESSMOTORCLASSNAME='Thorlabs.MotionControl.KCube.BrushlessMotorCLI.KCubeBrushlessMotor';
+       DEVICEMANAGERDLL(1, :) char = 'Thorlabs.MotionControl.DeviceManagerCLI.dll';
+       DEVICEMANAGERCLASSNAME(1, :) char = 'Thorlabs.MotionControl.DeviceManagerCLI.DeviceManagerCLI'
+       GENERICMOTORDLL(1, :) char = 'Thorlabs.MotionControl.GenericMotorCLI.dll';
+       GENERICMOTORCLASSNAME(1, :) char = 'Thorlabs.MotionControl.GenericMotorCLI.GenericMotorCLI';
+       BRUSHLESSMOTORDLL(1, :) char = 'Thorlabs.MotionControl.KCube.BrushlessMotorCLI.dll';  
+       BRUSHLESSMOTORCLASSNAME(1, :) char = 'Thorlabs.MotionControl.KCube.BrushlessMotorCLI.KCubeBrushlessMotor';
      
        % Default intitial parameters 
-       DEFAULTVEL=10;           % Default velocity
-       DEFAULTACC=10;           % Default acceleration
-       TPOLLING=250;            % Default polling time
-       TIMEOUTSETTINGS=7000;    % Default timeout time for settings change
-       TIMEOUTMOVE=100000;      % Default time out time for motor move
+       DEFAULTVEL = 10; % default velocity [mm/s]
+       DEFAULTACC = 10; % default acceleration [mm/s^2]
+       TPOLLING = 250; % Default polling time
+       TIMEOUTSETTINGS = 7000; % Default timeout time for settings change
+       TIMEOUTMOVE = 100000; % Default time out time for motor move
        MAXVEL = 600; % mm/s
        MAXACC = 5000; % mm/s^2
     end
+
     properties 
        % These properties are within Matlab wrapper 
-       serialnumber;                % Device serial number
-       controllername;              % Controller Name
-       controllerdescription        % Controller Description
-       stagename;                   % Stage Name
-
-       isConnected=false;           % Flag set if device connected
-       beSilent = 0;
-       isHomed;
-       isEnabled;
-
-       pos; % position [mm]
-       acc; % acceleration [mm/s^2]
-       mass; % mass the stage needs to carry [g]
-       vel; % velocity [mm/s]
-
-       maxvelocity;                 % Maximum velocity limit
-       minvelocity;                 % Minimum velocity limit
+       controllername; % Controller Name
+       controllerdescription % Controller Description
+       stagename(1, :) char; % Stage Name
+       isConnected(1, 1) logical = false; % flag set if device connected
+       beSilent(1, 1) logical = false; % suppress verbose output
+       mass(1, 1) single; % mass the stage needs to carry [g]
+       maxvelocity(1, 1) single; % Maximum velocity limit
+       minvelocity(1, 1) single; % Minimum velocity limit
        % These are properties within the .NET environment. 
-       deviceNET;                   % Device object within .NET
-       deviceInfoNET;               % deviceInfo within .NET
-       motorSettingsNET;            % motorSettings within .NET
-       currentDeviceSettingsNET;    % currentDeviceSetings within .NET
-
+       deviceNET; % Device object within .NET
+       deviceInfoNET; % deviceInfo within .NET
+       motorSettingsNET; % motorSettings within .NET
+       currentDeviceSettingsNET; % currentDeviceSetings within .NET
        homingOffsetDistance;
+       serialnumber; % Device serial number
     end
+
+    properties(Dependent)
+       vel(1, 1) single; % velocity [mm/s]
+       pos(1, 1) single; % position [mm]
+       acc(1, 1) single; % acceleration [mm/s^2]
+       isEnabled(1, 1) logical;
+       isDeviceBusy(1, 1) logical;
+       isHomed(1, 1) logical;
+       backlash(1, 1) single = 0; % backlash of stage in [mm] usually only due to leadscrew
+       homingVel(1, 1) single; % homing velocity of stage [mm/s]
+       % posErrorLimit(1, 1) single; % position error limit
+    end
+
     methods
 
       % Instantiate motor object
-      function ThorlabsStage=ThorlabsStage(varargin) 
-        ThorlabsStage.Load_DLLs; % Load DLLs (if not already loaded)
-        if (nargin == 1)
-          fprintf('[ThorlabsStage] Initialise based on constructor variable.\n');
-          if ischar(varargin{1})
-            ThorlabsStage.Connect(varargin{1});
+      function ThorlabsStage = ThorlabsStage(varargin) 
+
+        % default arguments
+        stageId = [];
+        flagHome = 1; % perform homing if required 
+
+        % user specific input
+        for (iargin = 1:2:(nargin - 1))
+          switch varargin{iargin}
+            case 'stageId'
+              stageId = varargin{iargin + 1}; 
+            case 'flagHome'
+              flagHome = varargin{iargin + 1};
+            otherwise
+              error('Invalid option passed during stage construction');
           end
         end
 
-        % first try
-        try
-          ThorlabsStage.Enable();
-        catch
-          % second try
-          warning('Problem enabling stage, retrying');
-          pause(0.5);
+        ThorlabsStage.Load_DLLs; % Load DLLs (if not already loaded)
+        
+        if ~isempty(stageId)
+          fprintf('[ThorlabsStage] Initialise based on constructor variable.\n');
+          ThorlabsStage.Connect(stageId);
+          
+          % first try
           try
             ThorlabsStage.Enable();
           catch
-            % thrird try
+            % second try
             warning('Problem enabling stage, retrying');
             pause(0.5);
-            ThorlabsStage.Enable();
+            try
+              ThorlabsStage.Enable();
+            catch
+              % thrird try
+              warning('Problem enabling stage, retrying');
+              pause(0.5);
+              ThorlabsStage.Enable();
+            end
+          end
+
+          if (~ThorlabsStage.isHomed && flagHome)
+            ThorlabsStage.Home();
           end
         end
 
-        if ~ThorlabsStage.isHomed
-          ThorlabsStage.Home();
-        end
       end
 
       % Destructor
@@ -103,8 +123,8 @@ classdef ThorlabsStage < handle
       Stop(thorlabsstage); % Stop the motor moving (needed if set motor to continous)
       Update_Status(thorlabsstage);
       Connect(thorlabsstage, serialNo);
-      Disconnect(thorlabsstage);
-      Home(thorlabsstage);
+      Disconnect(thorlabsstage); % closes connection between matlab and stage
+      Home(thorlabsstage); % homes at position x = 0
       Reset(thorlabsstage);
       acc = Mass_To_Acc(thorlabsstage, mass);
       Move_No_Wait(thorlabsstage, pos);
@@ -113,32 +133,59 @@ classdef ThorlabsStage < handle
       Set_Trigger_Edge(thorlabsstage, startPos, endPos, nCycles);
       Set_Trigger_Relative_Move(thorlabsstage, increment, nCycles);
 
-      function ih = get.isHomed(thorlabsstage)
-        status = thorlabsstage.deviceNET.Status;
+      function ib = get.isDeviceBusy(ts)
+        ib = ts.deviceNET.IsDeviceBusy;
+      end
+
+      function ih = get.isHomed(ts)
+        status = ts.deviceNET.Status;
         ih = status.IsHomed;
       end
 
-      function set.homingOffsetDistance(thorlabsstage, hod)
-        params = thorlabsstage.deviceNET.GetHomingParams;
+      function set.homingOffsetDistance(ts, hod)
+        params = ts.deviceNET.GetHomingParams;
         params.OffsetDistance = hod;
-        thorlabsstage.deviceNET.SetHomingParams(params);
-        thorlabsstage.homingOffsetDistance = hod;
+        ts.deviceNET.SetHomingParams(params);
+        ts.homingOffsetDistance = hod;
       end
 
-      function hod = get.homingOffsetDistance(thorlabsstage)
-        params = thorlabsstage.deviceNET.GetHomingParams;
+      function hod = get.homingOffsetDistance(ts)
+        params = ts.deviceNET.GetHomingParams;
         hod = System.Decimal.ToDouble(params.OffsetDistance);
       end
 
       % Moves to position and waits until position is reached
-      function set.pos(thorlabsstage, pos)
+      function set.pos(ts, pos)
           try
-              workDone=thorlabsstage.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
-              thorlabsstage.deviceNET.MoveTo(pos, workDone); % Move devce to position via .NET interface
-              thorlabsstage.deviceNET.Wait(thorlabsstage.TIMEOUTMOVE);              % Wait for move to finish
+              workDone = ts.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
+              ts.deviceNET.MoveTo(pos, workDone); % Move devce to position via .NET interface
+              ts.deviceNET.Wait(ts.TIMEOUTMOVE);              % Wait for move to finish
           catch % Device faile to move
-              error(['Unable to Move device ',thorlabsstage.serialnumber,' to ',num2str(pos)]);
+              error(['Unable to Move device ', ts.serialnumber, ' to ', num2str(pos)]);
           end
+      end
+
+      % Get current device position [mm]
+      function pos = get.pos(ts)
+          pos = System.Decimal.ToDouble(ts.deviceNET.Position);
+      end
+
+      % backlash [mm]
+      function backlash = get.backlash(ts)
+        backlash = single(System.Decimal.ToDouble(ts.deviceNET.GetBacklash));
+      end
+
+      function set.backlash(ts, backlash)
+        ts.deviceNET.SetBacklash(backlash);
+      end
+
+      % homing velocity [mm/s]
+      function homingVel = get.homingVel(ts)
+        homingVel = single(System.Decimal.ToDouble(ts.deviceNET.GetHomingVelocity));
+      end
+      
+      function set.homingVel(ts, homingVel)
+        ts.deviceNET.SetHomingVelocity(homingVel);
       end
 
       % Check if device is already enabled, if so we don't have to do it over and over again
@@ -146,9 +193,12 @@ classdef ThorlabsStage < handle
         ie = thorlabsstage.deviceNET.IsEnabled;
       end
 
-      % Get current device position
-      function pos = get.pos(thorlabsstage)
-          pos=System.Decimal.ToDouble(thorlabsstage.deviceNET.Position);
+      function set.isEnabled(ts, ie)
+        if ie
+          ts.Enable();
+        else
+          ts.Disable();
+        end
       end
 
       % Sets target velocity of the stage
@@ -197,20 +247,32 @@ classdef ThorlabsStage < handle
       % Automatically updates PID settings and maximum acceleration
       function set.mass(thorlabsstage, mass)
         thorlabsstage.acc = thorlabsstage.Mass_To_Acc(mass);
-        [differentialGain, perivativeRecalculationTime, outputGain] = thorlabsstage.Mass_To_PID(mass);
+        params = thorlabsstage.Mass_To_PID(mass);
 
-        posLoopParameters = thorlabsstage.deviceNET.GetPosLoopParams();
-        posLoopParameters.DifferentialGain = differentialGain;
-        posLoopParameters.PerivativeRecalculationTime = perivativeRecalculationTime;
-        posLoopParameters.FactorForOutput = outputGain;
+        posLoopParameters = thorlabsstage.deviceNET.GetPosLoopParams()
+        posLoopParameters.DerivativeRecalculationTime = params.perivativeRecalculationTime;
+        
+        posLoopParameters.DerivativeGain = params.derivativeGain;
+        posLoopParameters.ProportionalGain = params.proportionalGain;
+        posLoopParameters.IntegralGain = params.integralGain;
+
+        posLoopParameters.FactorForOutput = params.outputGain;
 
         thorlabsstage.deviceNET.SetPosLoopParams(posLoopParameters);
 
         thorlabsstage.mass = mass;
       end
 
-    
+      % % posErrorLimit
+      % function posErrorLimit = get.posErrorLimit(ts)
+      %   posErrorLimit = ts.deviceNET.GetPosLoopParams.PositionErrorLimit;
+      % end
 
-
+      % function set.posErrorLimit(ts, posErrorLimit)
+      %   % posErrorLimit = ST.deviceNET.GetPosLoopParams.PositionErrorLimit;
+      %   posLoopParameters = ts.deviceNET.GetPosLoopParams()
+      %   addposLoopParameters.PositionErrorLimit = int32(posErrorLimit);
+      %   ts.deviceNET.SetPosLoopParams(posLoopParameters);
+      % end
     end
 end

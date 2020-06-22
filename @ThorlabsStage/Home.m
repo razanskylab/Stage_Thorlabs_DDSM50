@@ -5,15 +5,22 @@
 
 % Description: Moves stage to its home position
 
-function Home(thorlabsstage)              % Home device (must be done before any device move
+function Home(ts)              % Home device (must be done before any device move
 	
-	if thorlabsstage.deviceNET.CanHome
+	if ts.deviceNET.CanHome
 		fprintf('[ThorlabsStage] Homing device.\n');
-		workDone = thorlabsstage.deviceNET.InitializeWaitHandler();     % Initialise Waithandler for timeout
-		thorlabsstage.deviceNET.Home(workDone);                       % Home devce via .NET interface
-		thorlabsstage.deviceNET.Wait(thorlabsstage.TIMEOUTMOVE);                  % Wait for move to finish
-		thorlabsstage.Update_Status(); % Update status variables from device
+		workDone = ts.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
+		ts.deviceNET.Home(workDone); % Home devce via .NET interface
+		ts.deviceNET.Wait(ts.TIMEOUTMOVE); % Wait for move to finish
+		ts.Update_Status(); % Update status variables from device
+
+		% check if homing was successfull
+		if ~ts.isHomed
+			error('Homing was not successfull');
+		end
 	else
 		error('[ThorlabsStage] Cannot home device.');
 	end
+
+	
 end

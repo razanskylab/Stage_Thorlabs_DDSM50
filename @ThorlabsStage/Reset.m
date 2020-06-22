@@ -5,7 +5,8 @@
 
 % Description: Resets stage.
 
-function Reset(thorlabsstage)    % Reset device
-    thorlabsstage.deviceNET.ClearDeviceExceptions();  % Clear exceptions via .NET interface
-	thorlabsstage.deviceNET.ResetConnection(thorlabsstage.serialnumber); % Reset connection via .NET interface
+function Reset(ts) % Reset device
+  ts.deviceNET.ClearDeviceExceptions(); % Clear exceptions via .NET interface
+	ts.deviceNET.ResetConnection(ts.serialnumber); % Reset connection via .NET interface
+	ts.deviceNET.ResetStageToDefaults();
 end
