@@ -2,7 +2,7 @@
 
 function Update_Status(thorlabsstage)
 
-	thorlabsstage.isConnected=boolean(thorlabsstage.deviceNET.IsConnected());   % update isconncted flag
+	thorlabsstage.isConnected=logical(thorlabsstage.deviceNET.IsConnected());   % update isconncted flag
 	thorlabsstage.serialnumber=char(thorlabsstage.deviceNET.DeviceID);          % update serial number
 	thorlabsstage.controllername=char(thorlabsstage.deviceInfoNET.Name);        % update controleller name          
 	thorlabsstage.controllerdescription=char(thorlabsstage.deviceInfoNET.Description);  % update controller description

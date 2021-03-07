@@ -67,10 +67,10 @@ classdef ThorlabsStage < handle
 
         % default arguments
         stageId = [];
-        flagHome = 1; % perform homing if required 
+        flagHome = 1; % perform homing if required
 
         % user specific input
-        for (iargin = 1:2:(nargin - 1))
+        for (iargin = 1:2:nargin)
           switch varargin{iargin}
             case 'stageId'
               stageId = varargin{iargin + 1}; 
@@ -107,14 +107,16 @@ classdef ThorlabsStage < handle
           if (~ThorlabsStage.isHomed && flagHome)
             ThorlabsStage.Home();
           end
+        else
+          error('Could not connect to anything here, this is fucked');         
         end
 
       end
 
       % Destructor
-      function delete(h)
-        if h.deviceNET.IsConnected
-          h.Disconnect;
+      function delete(ts)
+        if ts.deviceNET.IsConnected
+          ts.Disconnect;
         end
       end
 
