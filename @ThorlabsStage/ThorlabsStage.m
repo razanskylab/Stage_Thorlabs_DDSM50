@@ -81,10 +81,9 @@ classdef ThorlabsStage < handle
           end
         end
 
-        ThorlabsStage.Load_DLLs; % Load DLLs (if not already loaded)
+        ThorlabsStage.Load_DLLs(); % Load DLLs (if not already loaded)
         
         if ~isempty(stageId)
-          fprintf('[ThorlabsStage] Initialise based on constructor variable.\n');
           ThorlabsStage.Connect(stageId);
           
           % first try

@@ -7,10 +7,12 @@
 
 function Connect(ts, serialNo)  % Connect device
     
-    fprintf('[ThorlabsStage] Connecting to device\n');
     ts.List_Devices(); % build a device list
     
     if ~ts.isConnected % only do if not connected yet
+        fprintf('[ThorlabsStage] Connecting to device %s... ', serialNo);
+        tStart = tic();
+
         % Check if serial numebr is correct
         switch(serialNo(1:2))
             case '28'   % Serial number corresponds to a KBD101
@@ -39,6 +41,7 @@ function Connect(ts, serialNo)  % Connect device
         catch % Cannot initialise device
             error(['Catch: Unable to initialise device ', char(serialNo)]);
         end
+        fprintf('done after %.1f sec!\n', toc(tStart));
     else % Device is already connected
         error('Device is already connected.')
     end
