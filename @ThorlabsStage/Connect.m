@@ -10,7 +10,7 @@ function Connect(ts, serialNo)  % Connect device
     ts.List_Devices(); % build a device list
     
     if ~ts.isConnected % only do if not connected yet
-        fprintf('[ThorlabsStage] Connecting to device %s... ', serialNo);
+        fprintf('[ThorlabsStage] Connecting to device %s... ', serialNo)
         tStart = tic();
 
         % Check if serial numebr is correct

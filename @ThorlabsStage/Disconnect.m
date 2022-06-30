@@ -6,7 +6,7 @@
 % Description: Closes connection to the stage.
 
 function Disconnect(thorlabsstage) % Disconnect device     
-    fprintf(['[ThorlabsStage] Disconnecting device ',thorlabsstage.serialnumber, '... ']);
+    fprintf(['[ThorlabsStage] Disconnecting device ',thorlabsstage.serialnumber, '... '])
     thorlabsstage.isConnected = thorlabsstage.deviceNET.IsConnected(); % Update isconnected flag via .NET interface
     if thorlabsstage.isConnected
         try
@@ -19,5 +19,5 @@ function Disconnect(thorlabsstage) % Disconnect device
     else % Cannot disconnect because device not connected
         error('Device not connected, so how should I dosconnect it?.')
     end
-    fprintf("done!\n");
+    fprintf("done!\n")
 end

@@ -67,15 +67,17 @@ classdef ThorlabsStage < handle
 
         % default arguments
         stageId = [];
-        flagHome = 1; % perform homing if required
+        flagHome = 0; % perform homing if required
 
-        % user specific input
+        % user specific input, how to input the argument
         for (iargin = 1:2:nargin)
           switch varargin{iargin}
             case 'stageId'
               stageId = varargin{iargin + 1}; 
             case 'flagHome'
               flagHome = varargin{iargin + 1};
+            case 'mass'
+              mass = varargin{iargin + 1};  %%problem, property doesn't change 
             otherwise
               error('Invalid option passed during stage construction');
           end
@@ -83,8 +85,8 @@ classdef ThorlabsStage < handle
 
         ThorlabsStage.Load_DLLs(); % Load DLLs (if not already loaded)
         
-        if ~isempty(stageId)
-          ThorlabsStage.Connect(stageId);
+        if ~isempty(stageId) % stageId not empty, then true
+          ThorlabsStage.Connect(stageId)
           
           % first try
           try
@@ -115,7 +117,7 @@ classdef ThorlabsStage < handle
       % Destructor
       function delete(ts)
         if ts.deviceNET.IsConnected
-          ts.Disconnect;
+          ts.Disconnect  
         end
       end
 

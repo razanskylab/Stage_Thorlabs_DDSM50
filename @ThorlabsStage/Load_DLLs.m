@@ -18,7 +18,7 @@ function Load_DLLs(thorlabsstage) % Load DLLs
             error('Unable to load .NET assemblies')
         end
     end    
-
+  
     if ~exist(thorlabsstage.BRUSHLESSMOTORCLASSNAME, 'class')
         try   % Load in DLLs if not already loaded
             fprintf('[ThorlabsStage] Loading DLLs for brushless motor... ');

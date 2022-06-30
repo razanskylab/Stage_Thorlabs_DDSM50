@@ -13,5 +13,4 @@ function Move_No_Wait(thorlabsstage, pos)
   	catch % Device faile to move
       error(['Unable to Move device ',thorlabsstage.serialnumber,' to ',num2str(pos)]);
   	end
-
-end
+end 

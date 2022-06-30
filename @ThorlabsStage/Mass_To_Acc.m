@@ -7,7 +7,7 @@
 
 function acc = Mass_To_Acc(thorlabsstage, mass)
 
-	datapoints = [0 5000; 125 2400; 250 1550; 500 925; 750 650; 900 500];
+	datapoints = [0 5000; 125 2400; 250 1550; 500 925; 750 650; 900 500]; % The first column means the mass, the second means the corresponding acc;
 
 	% Check if mass is within a reasonable range
 	if (mass < 0) || (mass > 900)
@@ -17,3 +17,5 @@ function acc = Mass_To_Acc(thorlabsstage, mass)
 	acc = interp1(datapoints(:,1), datapoints(:,2), mass);
 
 end
+
+
